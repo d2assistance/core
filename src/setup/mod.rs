@@ -1,5 +1,9 @@
 use keyvalues_parser::Vdf;
-use std::{borrow::Cow, fs::read_to_string, path::{Path, PathBuf}};
+use std::{
+    borrow::Cow,
+    fs::{read_to_string, self},
+    path::{Path, PathBuf},
+};
 
 use self::libraryfolders_model::LibraryFolders;
 use tasklist::Tasklist;
@@ -15,25 +19,35 @@ pub struct Setup {
 pub enum SetupError {
     #[error("Steam process not found")]
     ProcessNotFound,
+
     #[error("Can't parse path to dota folder")]
     PathError,
+
     #[error("Can't read config file")]
     FileReadError,
+
     #[error("Can't parse config file")]
     FileParseError,
+
     #[error("Can't find Dota 2 folder")]
     Dota2FolderNotFound,
+
+    #[error("Can't copy config file")]
+    CantCopyConfig,
+
 }
 
 const DOTA2_GAME_ID: &'static str = "570";
+const CONFIG_FILENAME: &'static str = "gamestate_integration_dota2-gsi.cfg";
 
 impl Setup {
-    pub fn create_configuration() -> Result<Self, SetupError> {
+    pub fn create_configuration() -> Result<(), SetupError> {
         let libraryfolders_row = Self::open_libraryfolders()?;
         let libraryfolders = Self::parse_libraryfolders(libraryfolders_row)?;
-        let folder = Self::find_dota2_folder(libraryfolders)?;
+        let dota2_folder = Self::find_dota2_folder(libraryfolders)?;
+        Self::write_gsi_config(&dota2_folder)?;
 
-        Ok(Setup { folder: ".display()".to_string() })
+        Ok(())
     }
 
     fn parse_libraryfolders(row: String) -> Result<LibraryFolders, SetupError> {
@@ -90,7 +104,10 @@ impl Setup {
         }?;
         let steam_library = Path::new(&steam_library);
 
-        Ok(steam_library.join("steamapps").join("common").join("dota 2 beta"))
+        Ok(steam_library
+            .join("steamapps")
+            .join("common")
+            .join("dota 2 beta"))
     }
 
     fn lookup_steam_folder() -> Option<String> {
@@ -108,5 +125,20 @@ impl Setup {
         return None;
     }
 
-    fn join_
+    fn write_gsi_config(dota_folder: &PathBuf) -> Result<(), SetupError> {
+        let filename = dota_folder
+            .clone()
+            .join("game")
+            .join("dota")
+            .join("cfg")
+            .join("gamestate_integration")
+            .join(CONFIG_FILENAME.to_string());
+
+        match fs::copy("assets/config.cfg", filename) {
+            Err(_) => Err(SetupError::CantCopyConfig),
+            Ok(res) => Ok(res),
+        }?;
+
+        Ok(())
+    }
 }
