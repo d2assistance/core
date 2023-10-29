@@ -9,7 +9,7 @@ use setup::Setup;
 
 #[tokio::main]
 async fn main() {
-    Setup::create_configuration().unwrap();
+    Setup::run().unwrap();
 
     let gsi: GSIServer = Default::default();
     gsi.run().await;

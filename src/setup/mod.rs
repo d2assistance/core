@@ -1,7 +1,7 @@
 use keyvalues_parser::Vdf;
 use std::{
     borrow::Cow,
-    fs::{read_to_string, self},
+    fs::{self, read_to_string},
     path::{Path, PathBuf},
 };
 
@@ -11,9 +11,7 @@ use thiserror::Error;
 
 mod libraryfolders_model;
 
-pub struct Setup {
-    folder: String,
-}
+pub struct Setup {}
 
 #[derive(Error, Debug)]
 pub enum SetupError {
@@ -34,20 +32,56 @@ pub enum SetupError {
 
     #[error("Can't copy config file")]
     CantCopyConfig,
-
 }
 
 const DOTA2_GAME_ID: &'static str = "570";
-const CONFIG_FILENAME: &'static str = "gamestate_integration_dota2-gsi.cfg";
+const CONFIG_FILENAME: &'static str = "gamestate_integration_dota-helper-2.cfg";
+
+#[derive(Debug)]
+enum ConfigStatus {
+    EXIST,
+    EMPTY,
+}
 
 impl Setup {
-    pub fn create_configuration() -> Result<(), SetupError> {
-        let libraryfolders_row = Self::open_libraryfolders()?;
-        let libraryfolders = Self::parse_libraryfolders(libraryfolders_row)?;
-        let dota2_folder = Self::find_dota2_folder(libraryfolders)?;
-        Self::write_gsi_config(&dota2_folder)?;
+    pub fn run() -> Result<(), SetupError> {
+        let status = Self::check_config()?;
+
+        match status {
+            ConfigStatus::EXIST => Ok(()),
+            ConfigStatus::EMPTY => Self::create_configuration(),
+        }?;
 
         Ok(())
+    }
+
+    fn check_config() -> Result<ConfigStatus, SetupError> {
+        let dota2_folder = Self::get_dota2_folder()?;
+        let path = Self::get_path_to_config(dota2_folder);
+        let result = match path.try_exists() {
+            Ok(result) => Ok(result),
+            Err(_) => Err(SetupError::FileReadError),
+        }?;
+
+        Ok(match result {
+            true => ConfigStatus::EXIST,
+            false => ConfigStatus::EMPTY,
+        })
+    }
+
+    fn create_configuration() -> Result<(), SetupError> {
+        let dota2_folder = Self::get_dota2_folder()?;
+        Self::write_gsi_config(dota2_folder)?;
+
+        Ok(())
+    }
+
+    fn get_dota2_folder() -> Result<PathBuf, SetupError> {
+        let libraryfolders_row = Self::open_libraryfolders()?;
+        let libraryfolders = Self::parse_libraryfolders(libraryfolders_row)?;
+        let dota2_folder: PathBuf = Self::find_dota2_folder(libraryfolders)?;
+
+        Ok(dota2_folder)
     }
 
     fn parse_libraryfolders(row: String) -> Result<LibraryFolders, SetupError> {
@@ -125,14 +159,8 @@ impl Setup {
         return None;
     }
 
-    fn write_gsi_config(dota_folder: &PathBuf) -> Result<(), SetupError> {
-        let filename = dota_folder
-            .clone()
-            .join("game")
-            .join("dota")
-            .join("cfg")
-            .join("gamestate_integration")
-            .join(CONFIG_FILENAME.to_string());
+    fn write_gsi_config(dota2_folder: PathBuf) -> Result<(), SetupError> {
+        let filename = Self::get_path_to_config(dota2_folder);
 
         match fs::copy("assets/config.cfg", filename) {
             Err(_) => Err(SetupError::CantCopyConfig),
@@ -140,5 +168,15 @@ impl Setup {
         }?;
 
         Ok(())
+    }
+
+    fn get_path_to_config(dota2_folder: PathBuf) -> PathBuf {
+        dota2_folder
+            .clone()
+            .join("game")
+            .join("dota")
+            .join("cfg")
+            .join("gamestate_integration")
+            .join(CONFIG_FILENAME.to_string())
     }
 }
