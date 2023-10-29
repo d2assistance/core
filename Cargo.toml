@@ -1,5 +1,5 @@
 [package]
-name = "dota-helper-2"
+name = "d2assist"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,6 +10,7 @@ axum = "0.6.20"
 keyvalues-parser = { git = "https://github.com/CosmicHorrorDev/vdf-rs", version = "0.1.0" }
 keyvalues-serde = { git = "https://github.com/CosmicHorrorDev/vdf-rs", version = "0.1.0" }
 serde = { version = "1.0.190", features = ["derive"] }
+serde_json = "1.0.107"
 tasklist = "0.2.13"
 thiserror = "1.0.50"
 tokio = { version = "1.33.0", features = ["full"] }

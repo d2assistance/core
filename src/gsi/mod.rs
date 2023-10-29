@@ -1,4 +1,5 @@
 use axum::{routing:: post, Router, body::Bytes};
+use serde_json::{Result, Value};
 
 pub struct GSIServer {
   uri: String,
@@ -30,7 +31,10 @@ impl GSIServer {
 
   }
 
-  async fn handle_request(body: Bytes) {
-    println!("{:?}", body);
+  async fn handle_request(body: String) -> () {
+    let val: Value = serde_json::from_str(body.as_str()).unwrap();
+    let val = serde_json::to_string_pretty(&val).unwrap();
+
+    println!("{}", val);
   }
 }
