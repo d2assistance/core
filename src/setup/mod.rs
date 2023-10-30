@@ -11,6 +11,7 @@ use thiserror::Error;
 
 mod libraryfolders_model;
 
+/// Create configurations for GSI and other things
 pub struct Setup {}
 
 #[derive(Error, Debug)]

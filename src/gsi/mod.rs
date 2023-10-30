@@ -1,40 +1,48 @@
-use axum::{routing:: post, Router, body::Bytes};
-use serde_json::{Result, Value};
+use std::net::SocketAddr;
+
+use axum::{routing::post, Router};
+use serde_json::Value;
+
+use crate::logger;
 
 pub struct GSIServer {
-  uri: String,
+    uri: String,
+    state: Option<String>,
 }
 
 impl Default for GSIServer {
-  fn default() -> Self {
-      GSIServer {
-          uri: "127.0.0.1:3000".to_owned(),
-      }
-  }
+    fn default() -> Self {
+        GSIServer {
+            uri: "127.0.0.1:3000".to_owned(),
+            state: None,
+        }
+    }
 }
 
+// #[derive]
 impl GSIServer {
-  pub fn new(uri: String) -> Self {
-    GSIServer { uri }
-  }
+    #[allow(dead_code)]
+    pub fn new(uri: String) -> Self {
+        GSIServer { uri, state: None }
+    }
+}
 
-  pub async fn run(&self) {
-    let app = Router::new()
-        .route("/", post(Self::handle_request));
+pub async fn run(uri: String) {
+    let app = Router::new().route("/", post(handle_request));
 
-    println!("Running on http://{0}", &self.uri);
+    println!("Running on http://{0}", uri);
 
-    axum::Server::bind(&self.uri.parse().unwrap())
-      .serve(app.into_make_service())
-      .await
-      .unwrap();
+    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 3000)))
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
 
-  }
-
-  async fn handle_request(body: String) -> () {
+async fn handle_request(body: String) -> () {
     let val: Value = serde_json::from_str(body.as_str()).unwrap();
     let val = serde_json::to_string_pretty(&val).unwrap();
 
-    println!("{}", val);
-  }
+    println!("log");
+
+    logger::Logger::log(val);
 }

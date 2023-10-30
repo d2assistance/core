@@ -1,8 +1,6 @@
-
-// use crate::gsi::GSIServer;
-
 mod gsi;
 mod setup;
+mod logger;
 
 use gsi::GSIServer;
 use setup::Setup;
@@ -12,5 +10,5 @@ async fn main() {
     Setup::run().unwrap();
 
     let gsi: GSIServer = Default::default();
-    gsi.run().await;
+    gsi::run("127.0.0.1:3000".to_string()).await;
 }
