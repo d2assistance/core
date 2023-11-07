@@ -1,48 +1,38 @@
-use std::net::SocketAddr;
+use std::sync::{Arc, RwLock};
 
-use axum::{routing::post, Router};
-use serde_json::Value;
+use axum::{routing::{post, get}, Router, extract::State};
 
-use crate::logger;
-
+#[derive(Default, Clone)]
 pub struct GSIServer {
-    uri: String,
-    state: Option<String>,
+    state: String,
 }
 
-impl Default for GSIServer {
-    fn default() -> Self {
-        GSIServer {
-            uri: "127.0.0.1:3000".to_owned(),
-            state: None,
-        }
-    }
-}
-
-// #[derive]
-impl GSIServer {
-    #[allow(dead_code)]
-    pub fn new(uri: String) -> Self {
-        GSIServer { uri, state: None }
-    }
-}
+type SharedState = Arc<RwLock<GSIServer>>;
 
 pub async fn run(uri: String) {
-    let app = Router::new().route("/", post(handle_request));
+    let shared_state = SharedState::default();
+
+    let app =
+        Router::new()
+            .route("/", post(handle_set_state))
+            .route("/state", get(handle_get_state))
+            .with_state(Arc::clone(&shared_state));
 
     println!("Running on http://{0}", uri);
 
-    axum::Server::bind(&SocketAddr::from(([127, 0, 0, 1], 3000)))
+    axum::Server::bind(&uri.parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
 }
 
-async fn handle_request(body: String) -> () {
-    let val: Value = serde_json::from_str(body.as_str()).unwrap();
-    let val = serde_json::to_string_pretty(&val).unwrap();
+async fn handle_set_state(State(state): State<SharedState>, body: String) {
+    println!("handle_set_state");
+    state.write().unwrap().state = body;
+}
 
-    println!("log");
+async fn handle_get_state(State(state): State<SharedState>) -> String {
+    println!("handle_get_state");
 
-    logger::Logger::log(val);
+    return state.read().unwrap().state.clone();
 }
