@@ -33,6 +33,9 @@ pub enum SetupError {
 
     #[error("Can't copy config file")]
     CantCopyConfig,
+
+    #[error("Can't create folder")]
+    CantCreateFolder,
 }
 
 const DOTA2_GAME_ID: &'static str = "570";
@@ -162,6 +165,11 @@ impl Setup {
 
     fn write_gsi_config(dota2_folder: PathBuf) -> Result<(), SetupError> {
         let filename = Self::get_path_to_config(dota2_folder);
+        let folder = filename.parent().unwrap();
+
+        if !folder.exists() {
+            create_folder(folder)?;
+        }
 
         match fs::copy("assets/config.cfg", filename) {
             Err(_) => Err(SetupError::CantCopyConfig),
@@ -179,5 +187,12 @@ impl Setup {
             .join("cfg")
             .join("gamestate_integration")
             .join(CONFIG_FILENAME.to_string())
+    }
+}
+
+fn create_folder(folder: &Path) -> Result<(), SetupError> {
+    match fs::create_dir_all(folder) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(SetupError::CantCreateFolder),
     }
 }

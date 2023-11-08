@@ -1,6 +1,12 @@
 use std::sync::{Arc, RwLock};
 
-use axum::{routing::{post, get}, Router, extract::State};
+use axum::{
+    extract::State,
+    http::{header::ACCESS_CONTROL_ALLOW_ORIGIN, HeaderMap},
+    response::IntoResponse,
+    routing::{get, post},
+    Router,
+};
 
 #[derive(Default, Clone)]
 pub struct GSIServer {
@@ -12,11 +18,10 @@ type SharedState = Arc<RwLock<GSIServer>>;
 pub async fn run(uri: String) {
     let shared_state = SharedState::default();
 
-    let app =
-        Router::new()
-            .route("/", post(handle_set_state))
-            .route("/state", get(handle_get_state))
-            .with_state(Arc::clone(&shared_state));
+    let app = Router::new()
+        .route("/", post(handle_set_state))
+        .route("/state", get(handle_get_state))
+        .with_state(Arc::clone(&shared_state));
 
     println!("Running on http://{0}", uri);
 
@@ -31,8 +36,16 @@ async fn handle_set_state(State(state): State<SharedState>, body: String) {
     state.write().unwrap().state = body;
 }
 
-async fn handle_get_state(State(state): State<SharedState>) -> String {
+async fn handle_get_state(State(state): State<SharedState>) -> impl IntoResponse {
+    let mut headers = HeaderMap::new();
+    headers.insert(ACCESS_CONTROL_ALLOW_ORIGIN, "*".parse().unwrap());
+
     println!("handle_get_state");
 
-    return state.read().unwrap().state.clone();
+    let state = match state.read().unwrap().state.as_str() {
+        "" => "{}".to_string(),
+        state => state.to_string(),
+    };
+
+    return (headers, state);
 }

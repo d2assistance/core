@@ -2,7 +2,6 @@ mod gsi;
 mod logger;
 mod setup;
 
-use gsi::GSIServer;
 use setup::Setup;
 
 #[tokio::main]
