@@ -14,3 +14,8 @@ serde_json = "1.0.107"
 tasklist = "0.2.13"
 thiserror = "1.0.50"
 tokio = { version = "1.33.0", features = ["full"] }
+
+[workspace]
+members = [
+    "runner",
+]
